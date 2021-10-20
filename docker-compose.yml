@@ -1,10 +1,13 @@
-version: '2'
+---
+version: "3"
 
 services:
   postgres:
-    image: postgres:10.6-alpine
+    image: postgres:14-alpine
     container_name: asciinema_postgres
     restart: unless-stopped
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust  # avoid
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data
     ### See https://hub.docker.com/_/postgres/ for more
@@ -19,13 +22,13 @@ services:
     ### options for this image.
 
   nginx:
-    image: nginx:1.15-alpine
+    image: nginx:1.21-alpine
     container_name: asciinema_nginx
     restart: unless-stopped
     links:
       - phoenix
     ports:
-      - "80:80"
+      - "8888:8888"
       ### Uncomment for HTTPS:
       # - "443:443"
     volumes:
