@@ -1,39 +1,42 @@
 ---
-version: "3"
-
 services:
+  # see https://hub.docker.com/_/postgres/ for database configuration options
   postgres:
     image: postgres:14-alpine
     container_name: asciinema_postgres
     restart: unless-stopped
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust  # avoid
+    networks:
+      - private
     volumes:
-      - ./volumes/postgres:/var/lib/postgresql/data
-    ### See https://hub.docker.com/_/postgres/ for more
-    ### configuration options for this image.
+      - postgres:/var/lib/postgresql/data
 
   smtp:
+    # see https://github.com/namshi/docker-smtp for SMTP configuration options
     image: namshi/smtp
     container_name: asciinema_smtp
     restart: unless-stopped
+    networks:
+      - public
+    ports:
+      - "2525:25/tcp"
     env_file: .env.production
-    ### See https://github.com/namshi/docker-smtp for more SMTP configuration
-    ### options for this image.
 
   nginx:
     image: nginx:1.21-alpine
     container_name: asciinema_nginx
     restart: unless-stopped
-    links:
-      - phoenix
+    networks:
+      - private
+      - public
     ports:
-      - "8888:8888"
+      - "8888:8888/tcp"
       ### Uncomment for HTTPS:
       # - "443:443"
     volumes:
       - ./docker/nginx/asciinema.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./volumes/cache:/cache
+      - cache:/cache
       ### Uncomment for HTTPS (make sure to add your cert and private key to ./certs):
       #  - ./certs:/app/priv/certs
     ### See https://hub.docker.com/_/nginx/ for more configuration options for
@@ -43,9 +46,19 @@ services:
     image: asciinema/asciinema-server
     container_name: asciinema_phoenix
     restart: unless-stopped
-    links:
-      - postgres
-      - smtp
-    env_file: .env.production
+    networks:
+      - private
     volumes:
-      - ./volumes/uploads:/opt/app/uploads
+      - uploads:/opt/app/uploads
+    env_file: .env.production
+
+volumes:
+  cache:
+  postgres:
+  uploads:
+
+networks:
+  private:
+    internal: true
+  public:
+    internal: false
